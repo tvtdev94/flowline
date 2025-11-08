@@ -130,9 +130,106 @@ frontend/
 
 ---
 
-## 3. Database Schema
+## 3. Task Workflow (TODO → Track → Visualize)
 
-### Entity Diagram
+### Overview
+
+FLOWLINE uses a **TODO-first approach**: Create tasks as planning items, then start tracking when you begin working.
+
+### Task Lifecycle
+
+```
+1. CREATE TASK (Todo State)
+   ┌─────────────────────────┐
+   │  Task Created           │
+   │  - Title, Description   │
+   │  - Status: Active       │
+   │  - No TimeEntry yet     │
+   └─────────────────────────┘
+            │
+            │ User clicks "Start" button
+            ↓
+2. START TIMER
+   ┌─────────────────────────┐
+   │  TimeEntry Created      │
+   │  - StartTime = Now()    │
+   │  - EndTime = null       │
+   │  - Timer running        │
+   └─────────────────────────┘
+            │
+            │ User clicks "Stop" button
+            ↓
+3. STOP TIMER
+   ┌─────────────────────────┐
+   │  TimeEntry Completed    │
+   │  - EndTime = Now()      │
+   │  - Duration calculated  │
+   │  - Timeline bar visible │
+   └─────────────────────────┘
+            │
+            │ Can start again (new session)
+            ↓
+4. MULTIPLE SESSIONS
+   ┌─────────────────────────┐
+   │  Task has multiple      │
+   │  TimeEntry records:     │
+   │  - Session 1: 9-11am    │
+   │  - Session 2: 2-5pm     │
+   │  - Total: 5 hours       │
+   └─────────────────────────┘
+```
+
+### Key Features
+
+**1. Task as TODO:**
+- User creates tasks ahead of time (planning mode)
+- Tasks exist without TimeEntry (not tracked yet)
+- Can organize tasks by project, add descriptions
+
+**2. On-Demand Time Tracking:**
+- Click "Start" → Creates TimeEntry with `StartTime = DateTime.UtcNow`
+- Timer runs in real-time (SignalR updates every 1s)
+- Click "Stop" → Sets `EndTime = DateTime.UtcNow`
+
+**3. Multiple Work Sessions:**
+- Same task can be started/stopped multiple times
+- Each session = 1 TimeEntry record
+- Timeline shows all sessions as separate bars (with same task color)
+
+**4. Timeline Visualization:**
+- Only tasks **with TimeEntry** appear on timeline
+- Each TimeEntry = one horizontal bar
+- Auto-layout in lanes (no overlap)
+
+### API Workflow
+
+```typescript
+// 1. Create Task (TODO)
+POST /api/tasks
+Body: { userId, title, description, color, status: "Active" }
+→ Returns: { id, createdAt }
+
+// 2. Start Timer
+POST /api/time-entries/start
+Body: { taskId }
+→ Creates TimeEntry with StartTime = now
+→ Returns: { id, taskId, startTime }
+
+// 3. Stop Timer
+POST /api/time-entries/stop/{timeEntryId}
+→ Updates TimeEntry with EndTime = now
+→ Returns: { id, duration }
+
+// 4. Get Timeline (shows only tracked tasks)
+GET /api/timeline?userId={id}&date={date}
+→ Returns: List<TimeEntry> with Task info
+```
+
+---
+
+## 4. Database Schema
+
+### Entity Diagram (with Team Collaboration)
 
 ```
 ┌──────────────────┐
@@ -145,33 +242,34 @@ frontend/
 │ Picture          │
 │ CreatedAt        │
 │ LastLoginAt      │
-└────┬─────────────┘
+└────┬─────┬───────┘
+     │     │
+     │     │ N:M (via TeamMembers)
+     │     ↓
+     │   ┌──────────────────┐         ┌──────────────────┐
+     │   │  TeamMembers     │←────────│      Teams       │
+     │   ├──────────────────┤         ├──────────────────┤
+     │   │ Id (PK)          │         │ Id (PK)          │
+     │   │ TeamId (FK)      │    1:N  │ Name             │
+     │   │ UserId (FK)      │────────→│ OwnerId (FK)     │
+     │   │ Role             │         │ CreatedAt        │
+     │   │ JoinedAt         │         └──────────────────┘
+     │   └──────────────────┘
      │
-     │ 1:N
-     ↓
-┌──────────────────┐
-│     Projects     │
-├──────────────────┤
-│ Id (PK)          │
-│ UserId (FK)      │
-│ Name             │
-│ Color            │
-│ IsArchived       │
-│ CreatedAt        │
-└────┬─────────────┘
-     │
-     │ 1:N
+     │ 1:N (personal tasks)
      ↓
 ┌──────────────────┐
 │      Tasks       │
 ├──────────────────┤
 │ Id (PK)          │
 │ UserId (FK)      │
+│ TeamId (FK)      │ ← nullable (personal tasks have null)
 │ ProjectId (FK)   │
 │ Title            │
 │ Description      │
 │ Color            │
 │ Status           │ ← enum: Active, Paused, Stuck, Done
+│ IsPrivate        │ ← bool (hide from team if true)
 │ CreatedAt        │
 └────┬─────────────┘
      │
@@ -190,12 +288,41 @@ frontend/
 └──────────────────┘
 ```
 
+### Team Collaboration Features
+
+**Team Roles:**
+- **Owner**: Can manage team, invite/remove members, view all activity
+- **Member**: Can see team tasks, share own work with team
+
+**Visibility Rules:**
+- Personal tasks (TeamId = null): Only visible to task owner
+- Team tasks (TeamId != null): Visible to all team members
+- Private team tasks (IsPrivate = true): Visible only to owner, hidden from team
+- Manager view: Owner can see all team members' current activity (running timers)
+
+**Use Cases:**
+1. **Freelancer solo**: Works with personal tasks only
+2. **Team member**: Belongs to team(s), shares some tasks with team
+3. **Manager**: Creates team, invites members, monitors team progress
+
 ### Key Entities
 
 **User**
 - GoogleId: Unique identifier from Google OAuth
 - Email: User's email
 - Name, Picture: Profile info
+- Can belong to multiple teams
+
+**Team**
+- OwnerId: Creator/manager of the team
+- Name: Team name
+- Members: List of users via TeamMembers junction table
+
+**TeamMember**
+- Junction table for User <-> Team relationship
+- Role: "Owner" or "Member"
+- JoinedAt: When user joined the team
+- Allows N:M relationship (user can be in multiple teams)
 
 **Project**
 - Optional grouping for tasks
@@ -204,6 +331,9 @@ frontend/
 
 **Task**
 - Title, Description
+- TeamId: null for personal tasks, set for team-shared tasks
+- IsPrivate: If true, hide from team (only owner sees)
+- UserId: Task owner (who created it)
 - Custom color (or inherit from Project)
 - Status: Active, Paused, Stuck, Done
 - Multiple TimeEntries per Task
@@ -213,6 +343,7 @@ frontend/
 - StartTime: When timer started
 - EndTime: When timer stopped (null if running)
 - Duration: Calculated field (EndTime - StartTime)
+- Notes: Optional notes for the work session
 
 ---
 

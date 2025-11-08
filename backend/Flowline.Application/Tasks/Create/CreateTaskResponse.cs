@@ -1,4 +1,4 @@
-namespace Flowline.Application.Tasks.Commands.CreateTask;
+namespace Flowline.Application.Tasks.Create;
 
 public sealed record CreateTaskResponse
 {

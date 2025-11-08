@@ -2,7 +2,7 @@ using Flowline.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Flowline.Application.Tasks.Queries.GetTasks;
+namespace Flowline.Application.Tasks.GetAll;
 
 public sealed class GetTasksHandler : IRequestHandler<GetTasksQuery, GetTasksResponse>
 {

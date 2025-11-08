@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Flowline.Application.Tasks.Commands.CreateTask;
+namespace Flowline.Application.Tasks.Create;
 
 public sealed class CreateTaskValidator : AbstractValidator<CreateTaskCommand>
 {

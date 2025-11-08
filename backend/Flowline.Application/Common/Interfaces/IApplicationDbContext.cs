@@ -6,6 +6,8 @@ namespace Flowline.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<Team> Teams { get; }
+    DbSet<TeamMember> TeamMembers { get; }
     DbSet<Project> Projects { get; }
     DbSet<TaskEntity> Tasks { get; }
     DbSet<TimeEntry> TimeEntries { get; }

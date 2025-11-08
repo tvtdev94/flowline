@@ -1,6 +1,6 @@
 using TaskStatus = Flowline.Domain.Enums.TaskStatus;
 
-namespace Flowline.Application.Tasks.Queries.GetTasks;
+namespace Flowline.Application.Tasks.GetAll;
 
 public sealed record GetTasksResponse
 {

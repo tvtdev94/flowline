@@ -2,7 +2,7 @@ using Flowline.Application.Common.Interfaces;
 using Flowline.Domain.Entities;
 using MediatR;
 
-namespace Flowline.Application.Tasks.Commands.CreateTask;
+namespace Flowline.Application.Tasks.Create;
 
 public sealed class CreateTaskHandler : IRequestHandler<CreateTaskCommand, CreateTaskResponse>
 {
@@ -21,11 +21,13 @@ public sealed class CreateTaskHandler : IRequestHandler<CreateTaskCommand, Creat
         {
             Id = Guid.NewGuid(),
             UserId = request.UserId,
+            TeamId = request.TeamId,
             ProjectId = request.ProjectId,
             Title = request.Title,
             Description = request.Description,
             Color = request.Color,
             Status = request.Status,
+            IsPrivate = request.IsPrivate,
             CreatedAt = DateTime.UtcNow
         };
 

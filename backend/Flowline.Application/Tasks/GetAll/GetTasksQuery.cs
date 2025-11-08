@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Flowline.Application.Tasks.Queries.GetTasks;
+namespace Flowline.Application.Tasks.GetAll;
 
 public sealed record GetTasksQuery : IRequest<GetTasksResponse>
 {

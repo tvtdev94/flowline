@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<TaskEntity> Tasks => Set<TaskEntity>();
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
@@ -35,6 +37,28 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CreatedAt).IsRequired();
         });
 
+        // Team Configuration
+        modelBuilder.Entity<Team>(entity =>
+        {
+            entity.ToTable("Teams");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OwnerId);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+        });
+
+        // TeamMember Configuration
+        modelBuilder.Entity<TeamMember>(entity =>
+        {
+            entity.ToTable("TeamMembers");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.TeamId, e.UserId }).IsUnique();
+            entity.Property(e => e.Role)
+                .HasConversion<string>()
+                .IsRequired();
+            entity.Property(e => e.JoinedAt).IsRequired();
+        });
+
         // Project Configuration
         modelBuilder.Entity<Project>(entity =>
         {
@@ -53,6 +77,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.ToTable("Tasks");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.TeamId);
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.Status);
             entity.Property(e => e.Title).HasMaxLength(500).IsRequired();
@@ -61,6 +86,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Status)
                 .HasConversion<string>()
                 .IsRequired();
+            entity.Property(e => e.IsPrivate).IsRequired();
             entity.Property(e => e.CreatedAt).IsRequired();
         });
 
