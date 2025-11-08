@@ -73,4 +73,25 @@ app.MapGet("/api/tasks", async (Guid userId, Guid? projectId, ISender sender) =>
 .WithName("GetTasks")
 .WithOpenApi();
 
+// ==================== TIME ENTRY ENDPOINTS ====================
+
+// Start Timer
+app.MapPost("/api/time-entries/start", async (StartTimerCommand command, ISender sender) =>
+{
+    var result = await sender.Send(command);
+    return Results.Created($"/api/time-entries/{result.Id}", result);
+})
+.WithName("StartTimer")
+.WithOpenApi();
+
+// Stop Timer
+app.MapPatch("/api/time-entries/{id}/stop", async (Guid id, ISender sender) =>
+{
+    var command = new StopTimerCommand { TimeEntryId = id };
+    var result = await sender.Send(command);
+    return Results.Ok(result);
+})
+.WithName("StopTimer")
+.WithOpenApi();
+
 app.Run();
