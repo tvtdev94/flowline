@@ -6,6 +6,7 @@ using Flowline.Application.Tasks.GetAll;
 using Flowline.Application.TimeEntries.Start;
 using Flowline.Application.TimeEntries.Stop;
 using Flowline.Application.TimeEntries.GetAll;
+using Flowline.Application.Stats;
 using Flowline.Infrastructure;
 using MediatR;
 
@@ -135,6 +136,23 @@ app.MapGet("/api/time-entries/running", async (Guid userId, ISender sender) =>
     return Results.Ok(runningTimers);
 })
 .WithName("GetRunningTimers")
+.WithOpenApi();
+
+// ==================== STATS ENDPOINTS ====================
+
+// Get Daily Stats
+app.MapGet("/api/stats/daily", async (Guid userId, DateTime date, ISender sender) =>
+{
+    var query = new GetDailyStatsQuery
+    {
+        UserId = userId,
+        Date = date
+    };
+
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetDailyStats")
 .WithOpenApi();
 
 // ==================== SIGNALR HUB ====================
