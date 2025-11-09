@@ -25,6 +25,15 @@ export const taskApi = {
     const response = await api.post('/api/tasks', task);
     return response.data;
   },
+
+  update: async (taskId: string, updates: Partial<Task>): Promise<Task> => {
+    const response = await api.put(`/api/tasks/${taskId}`, updates);
+    return response.data;
+  },
+
+  delete: async (taskId: string): Promise<void> => {
+    await api.delete(`/api/tasks/${taskId}`);
+  },
 };
 
 // Time Entry API
@@ -53,6 +62,15 @@ export const timeEntryApi = {
   stop: async (timeEntryId: string): Promise<TimeEntry> => {
     const response = await api.patch(`/api/time-entries/${timeEntryId}/stop`);
     return response.data;
+  },
+
+  update: async (timeEntryId: string, updates: Partial<TimeEntry>): Promise<TimeEntry> => {
+    const response = await api.put(`/api/time-entries/${timeEntryId}`, updates);
+    return response.data;
+  },
+
+  delete: async (timeEntryId: string): Promise<void> => {
+    await api.delete(`/api/time-entries/${timeEntryId}`);
   },
 };
 

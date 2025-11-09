@@ -3,6 +3,8 @@ using Flowline.Api.Services;
 using Flowline.Application;
 using Flowline.Application.Tasks.Create;
 using Flowline.Application.Tasks.GetAll;
+using Flowline.Application.Tasks.Update;
+using Flowline.Application.Tasks.Delete;
 using Flowline.Application.TimeEntries.Start;
 using Flowline.Application.TimeEntries.Stop;
 using Flowline.Application.TimeEntries.GetAll;
@@ -165,6 +167,26 @@ app.MapGet("/api/tasks", async (Guid userId, Guid? projectId, ISender sender) =>
     return Results.Ok(result);
 })
 .WithName("GetTasks")
+.WithOpenApi();
+
+// Update Task
+app.MapPut("/api/tasks/{id}", async (Guid id, UpdateTaskCommand command, ISender sender) =>
+{
+    var updatedCommand = command with { TaskId = id };
+    var result = await sender.Send(updatedCommand);
+    return Results.Ok(result);
+})
+.WithName("UpdateTask")
+.WithOpenApi();
+
+// Delete Task
+app.MapDelete("/api/tasks/{id}", async (Guid id, ISender sender) =>
+{
+    var command = new DeleteTaskCommand { TaskId = id };
+    await sender.Send(command);
+    return Results.NoContent();
+})
+.WithName("DeleteTask")
 .WithOpenApi();
 
 // ==================== TIME ENTRY ENDPOINTS ====================
