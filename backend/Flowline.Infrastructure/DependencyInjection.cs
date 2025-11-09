@@ -1,5 +1,6 @@
 using Flowline.Application.Common.Interfaces;
 using Flowline.Infrastructure.Data;
+using Flowline.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,9 @@ public static class DependencyInjection
         // Register IApplicationDbContext interface
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());
+
+        // Register JWT Service
+        services.AddScoped<IJwtService, JwtService>();
 
         // Register repositories (if needed)
         // services.AddScoped<ITaskRepository, TaskRepository>();

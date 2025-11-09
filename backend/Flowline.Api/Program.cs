@@ -7,8 +7,12 @@ using Flowline.Application.TimeEntries.Start;
 using Flowline.Application.TimeEntries.Stop;
 using Flowline.Application.TimeEntries.GetAll;
 using Flowline.Application.Stats;
+using Flowline.Application.Auth;
 using Flowline.Infrastructure;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +23,46 @@ builder.Services.AddSwaggerGen();
 // Add Application & Infrastructure layers
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add JWT Authentication
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "default-secret-key-change-in-production-min-32-chars";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "flowline-api";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "flowline-app";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // SignalR support - allow token from query string
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -50,7 +94,47 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
+// Add Authentication & Authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
 // ==================== MINIMAL API ENDPOINTS ====================
+
+// ==================== AUTH ENDPOINTS ====================
+
+// Google OAuth Login
+app.MapPost("/api/auth/google", async (GoogleAuthRequest request, ISender sender) =>
+{
+    var command = new GoogleAuthCommand { IdToken = request.IdToken };
+    var result = await sender.Send(command);
+    return Results.Ok(result);
+})
+.WithName("GoogleAuth")
+.WithOpenApi()
+.AllowAnonymous();
+
+// Get Current User
+app.MapGet("/api/auth/me", (HttpContext httpContext) =>
+{
+    var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var email = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+    var name = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+    if (userId == null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(new
+    {
+        id = userId,
+        email,
+        name
+    });
+})
+.WithName("GetMe")
+.WithOpenApi()
+.RequireAuthorization();
 
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
