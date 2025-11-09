@@ -363,6 +363,37 @@ app.MapGet("/api/stats/daily", async (Guid userId, DateTime date, ISender sender
 .WithName("GetDailyStats")
 .WithOpenApi();
 
+// Get Weekly Stats
+app.MapGet("/api/stats/weekly", async (Guid userId, DateTime startDate, ISender sender) =>
+{
+    var query = new GetWeeklyStatsQuery
+    {
+        UserId = userId,
+        StartDate = startDate
+    };
+
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetWeeklyStats")
+.WithOpenApi();
+
+// Get Monthly Stats
+app.MapGet("/api/stats/monthly", async (Guid userId, int year, int month, ISender sender) =>
+{
+    var query = new GetMonthlyStatsQuery
+    {
+        UserId = userId,
+        Year = year,
+        Month = month
+    };
+
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetMonthlyStats")
+.WithOpenApi();
+
 // ==================== TEAM ENDPOINTS ====================
 
 // Create Team
