@@ -12,8 +12,8 @@ public static class AuthEndpoints
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var auth = app.MapGroup("/api/auth")
-            .WithTags("Authentication")
-            .RequireRateLimiting("auth"); // Apply strict rate limiting to auth endpoints
+            .WithTags("Authentication");
+            // .RequireRateLimiting("auth"); // Apply strict rate limiting to auth endpoints - temporarily disabled
 
         // Google OAuth Login
         auth.MapPost("/google", async (

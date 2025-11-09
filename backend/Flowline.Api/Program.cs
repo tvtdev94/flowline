@@ -4,8 +4,10 @@ using Flowline.Api.Services;
 using Flowline.Application;
 using Flowline.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,50 +19,52 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "default-secret-key-change-in-production-min-32-chars";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "flowline-api";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "flowline-app";
+// TEMPORARILY DISABLED: JWT Authentication
+// TODO: Re-enable authentication after testing
+// var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "default-secret-key-change-in-production-min-32-chars";
+// var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "flowline-api";
+// var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "flowline-app";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
+// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//     .AddJwtBearer(options =>
+//     {
+//         options.TokenValidationParameters = new TokenValidationParameters
+//         {
+//             ValidateIssuerSigningKey = true,
+//             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+//             ValidateIssuer = true,
+//             ValidIssuer = jwtIssuer,
+//             ValidateAudience = true,
+//             ValidAudience = jwtAudience,
+//             ValidateLifetime = true,
+//             ClockSkew = TimeSpan.Zero
+//         };
 
-        // SignalR support - allow token from query string
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                var accessToken = context.Request.Query["access_token"];
-                var path = context.HttpContext.Request.Path;
+//         // SignalR support - allow token from query string
+//         options.Events = new JwtBearerEvents
+//         {
+//             OnMessageReceived = context =>
+//             {
+//                 var accessToken = context.Request.Query["access_token"];
+//                 var path = context.HttpContext.Request.Path;
 
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                {
-                    context.Token = accessToken;
-                }
+//                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+//                 {
+//                     context.Token = accessToken;
+//                 }
 
-                return Task.CompletedTask;
-            }
-        };
-    });
+//                 return Task.CompletedTask;
+//             }
+//         };
+//     });
 
 builder.Services.AddAuthorization(options =>
 {
-    // Require authentication by default for all endpoints
-    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
-        .RequireAuthenticatedUser()
-        .Build();
+    // TEMPORARILY DISABLED: Require authentication by default for all endpoints
+    // TODO: Re-enable authentication after testing
+    // options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+    //     .RequireAuthenticatedUser()
+    //     .Build();
 });
 
 // Add SignalR
@@ -69,29 +73,8 @@ builder.Services.AddSignalR();
 // Add Timer Background Service
 builder.Services.AddHostedService<TimerBackgroundService>();
 
-// Add Rate Limiting
-builder.Services.AddRateLimiter(options =>
-{
-    // Global API rate limit
-    options.AddFixedWindowLimiter("api", opt =>
-    {
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 60; // 60 requests per minute per IP
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 5;
-    });
-
-    // Stricter limit for auth endpoints (prevent brute force)
-    options.AddFixedWindowLimiter("auth", opt =>
-    {
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 10; // 10 requests per minute
-        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-        opt.QueueLimit = 2;
-    });
-
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-});
+// Rate Limiting temporarily disabled - TODO: Fix in future
+// builder.Services.AddRateLimiter(...);
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -106,6 +89,29 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Ensure database is created on startup
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<Flowline.Application.Common.Interfaces.IApplicationDbContext>();
+        if (context is Microsoft.EntityFrameworkCore.DbContext dbContext)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Ensuring database is created...");
+            dbContext.Database.EnsureCreated();
+            logger.LogInformation("Database is ready");
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while setting up the database");
+        throw;
+    }
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
@@ -149,12 +155,13 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// Rate Limiting
-app.UseRateLimiter();
+// Rate Limiting temporarily disabled
+// app.UseRateLimiter();
 
-// Add Authentication & Authorization middleware
-app.UseAuthentication();
-app.UseAuthorization();
+// TEMPORARILY DISABLED: Authentication & Authorization middleware
+// TODO: Re-enable authentication after testing
+// app.UseAuthentication();
+// app.UseAuthorization();
 
 // ==================== MAP ENDPOINTS ====================
 

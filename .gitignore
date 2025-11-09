@@ -45,3 +45,5 @@ bld/
 *.exe
 *.pdb
 *.cache
+
+frontend/nul

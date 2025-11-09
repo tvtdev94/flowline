@@ -4,14 +4,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Flowline.Domain.Entities;
+using Flowline.Application.Common.Interfaces;
 
 namespace Flowline.Infrastructure.Services;
-
-public interface IJwtService
-{
-    string GenerateToken(User user);
-    ClaimsPrincipal? ValidateToken(string token);
-}
 
 public class JwtService : IJwtService
 {

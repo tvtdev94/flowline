@@ -1,5 +1,5 @@
-using Flowline.Domain.Enums;
 using MediatR;
+using TaskStatus = Flowline.Domain.Enums.TaskStatus;
 
 namespace Flowline.Application.Tasks.Update;
 

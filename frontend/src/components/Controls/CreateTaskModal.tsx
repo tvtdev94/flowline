@@ -22,13 +22,18 @@ const TASK_COLORS = [
   '#f97316', // orange
 ];
 
+// Function to get random color
+const getRandomColor = () => {
+  return TASK_COLORS[Math.floor(Math.random() * TASK_COLORS.length)];
+};
+
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClose }) => {
   const { addTask } = useTaskStore();
   const { projects, fetchProjects } = useProjectStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [projectId, setProjectId] = useState<string>('');
-  const [color, setColor] = useState(TASK_COLORS[0]);
+  const [color, setColor] = useState(getRandomColor());
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.Active);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +41,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClo
   useEffect(() => {
     if (isOpen) {
       fetchProjects(userId);
+      // Set random color when modal opens
+      setColor(getRandomColor());
     }
   }, [isOpen, userId, fetchProjects]);
 
