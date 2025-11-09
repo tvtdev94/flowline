@@ -78,7 +78,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Require authentication by default for all endpoints
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -225,7 +231,8 @@ app.MapGet("/api/auth/me", (HttpContext httpContext) =>
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
    .WithName("HealthCheck")
-   .WithOpenApi();
+   .WithOpenApi()
+   .AllowAnonymous();
 
 // ==================== TASK ENDPOINTS ====================
 
@@ -239,7 +246,7 @@ app.MapPost("/api/tasks", async (CreateTaskCommand command, ISender sender) =>
 .WithOpenApi();
 
 // Get Tasks
-app.MapGet("/api/tasks", async (Guid userId, Guid? projectId, Guid? teamId, bool includeTeamTasks, ISender sender) =>
+app.MapGet("/api/tasks", async (Guid userId, Guid? projectId = null, Guid? teamId = null, bool includeTeamTasks = false, ISender sender) =>
 {
     var query = new GetTasksQuery
     {
@@ -498,7 +505,7 @@ app.MapPost("/api/projects", async (CreateProjectCommand command, ISender sender
 .WithOpenApi();
 
 // Get User's Projects
-app.MapGet("/api/projects", async (Guid userId, bool includeArchived, ISender sender) =>
+app.MapGet("/api/projects", async (Guid userId, bool includeArchived = false, ISender sender) =>
 {
     var query = new GetProjectsQuery
     {
