@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Task, TaskStatus } from '../../types/task';
 import { useTimerStore } from '../../store/timerStore';
 import { formatDuration } from '../../utils/autoLayout';
+import EditTaskModal from './EditTaskModal';
 
 interface TaskControlsProps {
   task: Task;
@@ -11,6 +12,7 @@ interface TaskControlsProps {
 const TaskControls: React.FC<TaskControlsProps> = ({ task, userId }) => {
   const { startTimer, stopTimer, getRunningTimer } = useTimerStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const runningTimer = getRunningTimer(task.id);
   const isRunning = !!runningTimer;
@@ -74,6 +76,13 @@ const TaskControls: React.FC<TaskControlsProps> = ({ task, userId }) => {
 
       {/* Control Buttons */}
       <div className="flex gap-2">
+        <button
+          onClick={() => setIsEditModalOpen(true)}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+          title="Edit task"
+        >
+          Edit
+        </button>
         {!isRunning ? (
           <button
             onClick={handleStart}
@@ -92,6 +101,14 @@ const TaskControls: React.FC<TaskControlsProps> = ({ task, userId }) => {
           </button>
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      {isEditModalOpen && (
+        <EditTaskModal
+          task={task}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
