@@ -20,6 +20,10 @@ using Flowline.Application.Teams.Delete;
 using Flowline.Application.TeamMembers.Add;
 using Flowline.Application.TeamMembers.Remove;
 using Flowline.Application.TeamMembers.GetAll;
+using Flowline.Application.Projects.Create;
+using Flowline.Application.Projects.GetAll;
+using Flowline.Application.Projects.Update;
+using Flowline.Application.Projects.Delete;
 using Flowline.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -480,6 +484,55 @@ app.MapDelete("/api/teams/{teamId}/members/{userId}", async (Guid teamId, Guid u
     return Results.NoContent();
 })
 .WithName("RemoveTeamMember")
+.WithOpenApi();
+
+// ==================== PROJECT ENDPOINTS ====================
+
+// Create Project
+app.MapPost("/api/projects", async (CreateProjectCommand command, ISender sender) =>
+{
+    var result = await sender.Send(command);
+    return Results.Created($"/api/projects/{result.Id}", result);
+})
+.WithName("CreateProject")
+.WithOpenApi();
+
+// Get User's Projects
+app.MapGet("/api/projects", async (Guid userId, bool includeArchived, ISender sender) =>
+{
+    var query = new GetProjectsQuery
+    {
+        UserId = userId,
+        IncludeArchived = includeArchived
+    };
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetProjects")
+.WithOpenApi();
+
+// Update Project
+app.MapPut("/api/projects/{id}", async (Guid id, UpdateProjectCommand command, ISender sender) =>
+{
+    var updatedCommand = command with { ProjectId = id };
+    var result = await sender.Send(updatedCommand);
+    return Results.Ok(result);
+})
+.WithName("UpdateProject")
+.WithOpenApi();
+
+// Delete Project
+app.MapDelete("/api/projects/{id}", async (Guid id, Guid userId, ISender sender) =>
+{
+    var command = new DeleteProjectCommand
+    {
+        ProjectId = id,
+        UserId = userId
+    };
+    await sender.Send(command);
+    return Results.NoContent();
+})
+.WithName("DeleteProject")
 .WithOpenApi();
 
 // ==================== SIGNALR HUB ====================

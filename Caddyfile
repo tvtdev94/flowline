@@ -1,0 +1,60 @@
+# Caddyfile for FLOWLINE
+
+# Default configuration (localhost or custom domain)
+{$DOMAIN:localhost} {
+    # Enable automatic HTTPS (only works with real domain)
+    # For localhost, Caddy will use HTTP
+
+    # Enable access logs
+    log {
+        output stdout
+        format console
+    }
+
+    # Enable compression
+    encode gzip
+
+    # Backend API routes
+    handle /api/* {
+        reverse_proxy backend:5000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # SignalR WebSocket routes
+    handle /hubs/* {
+        reverse_proxy backend:5000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+
+            # WebSocket support
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+        }
+    }
+
+    # Health check endpoint
+    handle /health {
+        reverse_proxy backend:5000
+    }
+
+    # Swagger/OpenAPI (development only - disable in production)
+    handle /swagger* {
+        reverse_proxy backend:5000
+    }
+
+    # Frontend (SPA) - must be last
+    handle /* {
+        reverse_proxy frontend:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+}

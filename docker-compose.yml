@@ -1,22 +1,110 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: flowline-postgres
     environment:
-      POSTGRES_DB: flowline
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${DATABASE_NAME:-flowline}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flowline-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # .NET Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: flowline-backend
+    environment:
+      # Database
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${DATABASE_NAME:-flowline};Username=${DATABASE_USER:-postgres};Password=${DATABASE_PASSWORD:-postgres}"
+
+      # Google OAuth
+      Google__ClientId: ${GOOGLE_CLIENT_ID}
+      Google__ClientSecret: ${GOOGLE_CLIENT_SECRET}
+
+      # JWT
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER:-flowline-api}
+      Jwt__Audience: ${JWT_AUDIENCE:-flowline-app}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-60}
+
+      # Development Mode
+      Development__EnableGoogleAuth: ${ENABLE_GOOGLE_AUTH:-true}
+      Development__MockUser__Id: ${MOCK_USER_ID:-00000000-0000-0000-0000-000000000001}
+      Development__MockUser__Email: ${MOCK_USER_EMAIL:-dev@flowline.local}
+      Development__MockUser__Name: ${MOCK_USER_NAME:-Development User}
+      Development__MockUser__GoogleId: ${MOCK_USER_GOOGLE_ID:-dev-google-id}
+
+      # Environment
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - flowline-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: flowline-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - flowline-network
+    depends_on:
+      - backend
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: flowline-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - flowline-network
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+networks:
+  flowline-network:
+    driver: bridge
+
 volumes:
   postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

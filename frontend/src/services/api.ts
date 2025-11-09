@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Task, CreateTaskRequest } from '../types/task';
 import { TimeEntry, StartTimerRequest } from '../types/timeEntry';
+import { Project, CreateProjectRequest, UpdateProjectRequest } from '../types/project';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -71,6 +72,30 @@ export const timeEntryApi = {
 
   delete: async (timeEntryId: string): Promise<void> => {
     await api.delete(`/api/time-entries/${timeEntryId}`);
+  },
+};
+
+// Project API
+export const projectApi = {
+  getAll: async (userId: string, includeArchived = false): Promise<Project[]> => {
+    const params = new URLSearchParams({ userId, includeArchived: String(includeArchived) });
+    const response = await api.get(`/api/projects?${params.toString()}`);
+    return response.data;
+  },
+
+  create: async (project: CreateProjectRequest): Promise<Project> => {
+    const response = await api.post('/api/projects', project);
+    return response.data;
+  },
+
+  update: async (projectId: string, updates: UpdateProjectRequest): Promise<Project> => {
+    const response = await api.put(`/api/projects/${projectId}`, updates);
+    return response.data;
+  },
+
+  delete: async (projectId: string, userId: string): Promise<void> => {
+    const params = new URLSearchParams({ userId });
+    await api.delete(`/api/projects/${projectId}?${params.toString()}`);
   },
 };
 

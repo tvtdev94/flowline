@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { TaskStatus } from '../../types/task';
 import { taskApi } from '../../services/api';
 import { useTaskStore } from '../../store/taskStore';
+import { useProjectStore } from '../../store/projectStore';
 
 interface CreateTaskModalProps {
   userId: string;
@@ -23,12 +24,20 @@ const TASK_COLORS = [
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClose }) => {
   const { addTask } = useTaskStore();
+  const { projects, fetchProjects } = useProjectStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [projectId, setProjectId] = useState<string>('');
   const [color, setColor] = useState(TASK_COLORS[0]);
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.Active);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchProjects(userId);
+    }
+  }, [isOpen, userId, fetchProjects]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +55,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClo
         userId,
         title: title.trim(),
         description: description.trim() || undefined,
+        projectId: projectId || undefined,
         color,
         status,
         isPrivate: false,
@@ -56,6 +66,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClo
       // Reset form
       setTitle('');
       setDescription('');
+      setProjectId('');
       setColor(TASK_COLORS[0]);
       setStatus(TaskStatus.Active);
 
@@ -122,6 +133,26 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClo
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
             />
+          </div>
+
+          {/* Project */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Project (Optional)
+            </label>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+            >
+              <option value="">No Project</option>
+              {projects.filter(p => !p.isArchived).map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Color Picker */}
