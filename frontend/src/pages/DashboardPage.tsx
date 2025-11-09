@@ -22,6 +22,7 @@ function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('personal');
+  const [timelineZoom, setTimelineZoom] = useState(100); // pixels per hour
 
   const userId = user?.id || '';
 
@@ -72,6 +73,18 @@ function DashboardPage() {
   };
 
   const isToday = currentDate.toDateString() === new Date().toDateString();
+
+  const handleZoomIn = () => {
+    setTimelineZoom((prev) => Math.min(prev + 25, 300)); // Max 300px per hour
+  };
+
+  const handleZoomOut = () => {
+    setTimelineZoom((prev) => Math.max(prev - 25, 50)); // Min 50px per hour
+  };
+
+  const handleZoomReset = () => {
+    setTimelineZoom(100);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -274,21 +287,56 @@ function DashboardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Timeline</h3>
-            {timeEntries.length > 0 && (
-              <button
-                onClick={() => exportTimeEntriesToCSV(timeEntries, currentDate)}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
-                title="Export to CSV"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export to CSV
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Zoom Controls */}
+              {timeEntries.length > 0 && (
+                <>
+                  <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
+                    <button
+                      onClick={handleZoomOut}
+                      disabled={timelineZoom <= 50}
+                      className="p-1 text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                      title="Zoom out"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                      </svg>
+                    </button>
+                    <span className="text-xs text-gray-600 px-2 border-x border-gray-200">{Math.round((timelineZoom / 100) * 100)}%</span>
+                    <button
+                      onClick={handleZoomIn}
+                      disabled={timelineZoom >= 300}
+                      className="p-1 text-gray-600 hover:text-gray-900 disabled:text-gray-300 disabled:cursor-not-allowed"
+                      title="Zoom in"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={handleZoomReset}
+                      className="ml-1 px-2 py-0.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded"
+                      title="Reset zoom"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => exportTimeEntriesToCSV(timeEntries, currentDate)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm"
+                    title="Export to CSV"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export to CSV
+                  </button>
+                </>
+              )}
+            </div>
           </div>
           {timeEntries.length > 0 ? (
-            <Timeline timeEntries={timeEntries} date={currentDate} />
+            <Timeline timeEntries={timeEntries} date={currentDate} pixelsPerHour={timelineZoom} />
           ) : (
             <div className="bg-white rounded-lg shadow-md p-8 text-center">
               <p className="text-gray-600">

@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { TimeEntry } from '../../types/timeEntry';
 import { assignLanes, getXPosition, getWidth } from '../../utils/autoLayout';
-import TaskBar from '../TaskBar/TaskBar';
+import TaskBarDraggable from '../TaskBar/TaskBarDraggable';
 
 interface TimelineProps {
   timeEntries: TimeEntry[];
@@ -16,10 +16,34 @@ const Timeline: React.FC<TimelineProps> = ({
   pixelsPerHour = 100,
   laneHeight = 60,
 }) => {
+  // Local state for optimistic updates during drag
+  const [localTimeEntries, setLocalTimeEntries] = useState<TimeEntry[]>(timeEntries);
+
+  // Update local state when props change
+  React.useEffect(() => {
+    setLocalTimeEntries(timeEntries);
+  }, [timeEntries]);
+
   // Auto-layout: Assign lanes to time entries
   const timelineTasks = useMemo(() => {
-    return assignLanes(timeEntries);
-  }, [timeEntries]);
+    return assignLanes(localTimeEntries);
+  }, [localTimeEntries]);
+
+  const handleTimeEntryUpdate = (timeEntryId: string, startTime: Date, endTime: Date) => {
+    // Optimistic update
+    setLocalTimeEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === timeEntryId
+          ? {
+              ...entry,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              duration: (endTime.getTime() - startTime.getTime()) / 1000,
+            }
+          : entry
+      )
+    );
+  };
 
   // Calculate day start (00:00) and day end (23:59)
   const dayStart = useMemo(() => {
@@ -97,13 +121,16 @@ const Timeline: React.FC<TimelineProps> = ({
             const y = task.lane * laneHeight;
 
             return (
-              <TaskBar
+              <TaskBarDraggable
                 key={task.id}
                 timeEntry={task}
                 x={x}
                 y={y}
                 width={width}
                 height={laneHeight - 10}
+                pixelsPerHour={pixelsPerHour}
+                dayStart={dayStart}
+                onUpdate={handleTimeEntryUpdate}
               />
             );
           })}
