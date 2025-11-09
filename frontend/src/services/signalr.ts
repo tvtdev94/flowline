@@ -49,7 +49,8 @@ class SignalRService {
   }
 
   /**
-   * Subscribe to timer tick events
+   * Subscribe to timer tick events (DEPRECATED - use onTimerSync)
+   * @deprecated Use onTimerSync instead for periodic server sync
    */
   onTimerTick(callback: (event: TimerTickEvent) => void): void {
     if (!this.connection) {
@@ -58,6 +59,24 @@ class SignalRService {
     }
 
     this.connection.on('OnTimerTick', callback);
+  }
+
+  /**
+   * Subscribe to timer sync events (periodic sync every 30s from server)
+   * Clients should calculate elapsed time locally and use this for sync only
+   */
+  onTimerSync(callback: (updates: Array<{
+    id: string;
+    taskId: string;
+    startTime: string;
+    elapsedSeconds: number;
+  }>) => void): void {
+    if (!this.connection) {
+      console.error('SignalR not connected');
+      return;
+    }
+
+    this.connection.on('OnTimerSync', callback);
   }
 
   /**

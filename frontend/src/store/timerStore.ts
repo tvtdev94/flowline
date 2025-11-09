@@ -15,6 +15,8 @@ interface TimerState {
   startTimer: (taskId: string, userId: string) => Promise<TimeEntry | null>;
   stopTimer: (timeEntryId: string) => Promise<void>;
   updateTimerTick: (timeEntryId: string, duration: number) => void;
+  updateLocalElapsedTime: () => void; // Client-side timer update
+  syncTimersFromServer: (updates: Array<{ id: string; elapsedSeconds: number }>) => void;
   addTimeEntry: (entry: TimeEntry) => void;
   getRunningTimer: (taskId: string) => TimeEntry | undefined;
 }
@@ -118,6 +120,45 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         entry.id === timeEntryId ? { ...entry, duration } : entry
       ),
     }));
+  },
+
+  /**
+   * Update elapsed time for all running timers (client-side calculation)
+   * Called every second by client-side interval
+   */
+  updateLocalElapsedTime: () => {
+    set((state) => {
+      const now = new Date();
+      const updatedEntries = state.timeEntries.map((entry) => {
+        // Only update running timers (no endTime)
+        if (!entry.endTime && entry.startTime) {
+          const start = new Date(entry.startTime);
+          const elapsedSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+          return { ...entry, duration: elapsedSeconds };
+        }
+        return entry;
+      });
+
+      return { timeEntries: updatedEntries };
+    });
+  },
+
+  /**
+   * Sync timers with server data (called every 30s from SignalR)
+   * Ensures client stays in sync with server
+   */
+  syncTimersFromServer: (updates) => {
+    set((state) => {
+      const updatedEntries = state.timeEntries.map((entry) => {
+        const serverUpdate = updates.find((u) => u.id === entry.id);
+        if (serverUpdate) {
+          return { ...entry, duration: Math.floor(serverUpdate.elapsedSeconds) };
+        }
+        return entry;
+      });
+
+      return { timeEntries: updatedEntries };
+    });
   },
 
   addTimeEntry: (entry: TimeEntry) => {

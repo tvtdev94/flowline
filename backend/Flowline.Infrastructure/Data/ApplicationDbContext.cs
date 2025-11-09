@@ -53,6 +53,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.ToTable("TeamMembers");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.TeamId, e.UserId }).IsUnique();
+
+            // PERFORMANCE INDEX: Reverse lookup (get all teams for a user)
+            entity.HasIndex(e => e.UserId);
+
             entity.Property(e => e.Role)
                 .HasConversion<string>()
                 .IsRequired();
@@ -65,6 +69,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.ToTable("Projects");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.UserId);
+
+            // PERFORMANCE INDEX: Filter active projects for user
+            entity.HasIndex(e => new { e.UserId, e.IsArchived });
+
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Color).HasMaxLength(7).IsRequired(); // #RRGGBB
             entity.Property(e => e.IsArchived).IsRequired();
@@ -80,6 +88,13 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.HasIndex(e => e.TeamId);
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.Status);
+
+            // PERFORMANCE INDEXES
+            // Filter by user and status (e.g., active tasks)
+            entity.HasIndex(e => new { e.UserId, e.Status });
+            // Team task queries with privacy filter
+            entity.HasIndex(e => new { e.TeamId, e.IsPrivate });
+
             entity.Property(e => e.Title).HasMaxLength(500).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Color).HasMaxLength(7).IsRequired();
@@ -97,6 +112,13 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.TaskId);
             entity.HasIndex(e => e.StartTime);
+
+            // PERFORMANCE INDEXES
+            // Critical for running timers query: WHERE EndTime IS NULL
+            entity.HasIndex(e => e.EndTime);
+            // Optimizes date range queries
+            entity.HasIndex(e => new { e.StartTime, e.EndTime });
+
             entity.Property(e => e.StartTime).IsRequired();
             entity.Property(e => e.Notes).HasMaxLength(1000);
             entity.Property(e => e.CreatedAt).IsRequired();

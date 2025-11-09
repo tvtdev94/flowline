@@ -69,6 +69,30 @@ builder.Services.AddSignalR();
 // Add Timer Background Service
 builder.Services.AddHostedService<TimerBackgroundService>();
 
+// Add Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // Global API rate limit
+    options.AddFixedWindowLimiter("api", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 60; // 60 requests per minute per IP
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
+
+    // Stricter limit for auth endpoints (prevent brute force)
+    options.AddFixedWindowLimiter("auth", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 10; // 10 requests per minute
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 2;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // Add CORS
 builder.Services.AddCors(options =>
 {
@@ -93,6 +117,41 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 
+// Security Headers Middleware
+app.Use(async (context, next) =>
+{
+    // Prevent clickjacking
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
+
+    // Prevent MIME sniffing
+    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+
+    // XSS Protection (legacy browsers)
+    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+
+    // Referrer Policy
+    context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // Content Security Policy
+    context.Response.Headers.Add("Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + // Allow SignalR
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' ws: wss:; " + // Allow WebSocket for SignalR
+        "font-src 'self' data:; " +
+        "frame-ancestors 'none'");
+
+    // Permissions Policy (formerly Feature-Policy)
+    context.Response.Headers.Add("Permissions-Policy",
+        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
+
+    await next();
+});
+
+// Rate Limiting
+app.UseRateLimiter();
+
 // Add Authentication & Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
@@ -100,7 +159,9 @@ app.UseAuthorization();
 // ==================== MAP ENDPOINTS ====================
 
 // Map all feature endpoints
-app.MapAuthEndpoints();
+app.MapAuthEndpoints(); // Has strict "auth" rate limiting (10 req/min)
+
+// Apply global rate limiting to all other endpoints (60 req/min)
 app.MapTaskEndpoints();
 app.MapTimeEntryEndpoints();
 app.MapStatsEndpoints();

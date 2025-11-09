@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Flowline.Api.Services;
 
 /// <summary>
-/// Background service that broadcasts timer updates every second
-/// Sends OnTimerTick events to all connected clients with running timers
+/// Background service that periodically syncs timer updates
+/// Sends OnTimerSync events every 30 seconds to maintain accuracy
+/// Clients calculate elapsed time locally for real-time updates
 /// </summary>
 public class TimerBackgroundService : BackgroundService
 {
@@ -34,7 +35,10 @@ public class TimerBackgroundService : BackgroundService
             try
             {
                 await BroadcastTimerUpdates(stoppingToken);
-                await Task.Delay(1000, stoppingToken); // Wait 1 second
+
+                // OPTIMIZATION: Broadcast every 30 seconds instead of every second
+                // Clients calculate elapsed time locally, this is just for periodic sync
+                await Task.Delay(30000, stoppingToken); // Wait 30 seconds
             }
             catch (OperationCanceledException)
             {
@@ -44,7 +48,7 @@ public class TimerBackgroundService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Timer Background Service");
-                await Task.Delay(1000, stoppingToken); // Wait before retry
+                await Task.Delay(5000, stoppingToken); // Wait 5s before retry
             }
         }
 
@@ -53,38 +57,62 @@ public class TimerBackgroundService : BackgroundService
 
     private async Task BroadcastTimerUpdates(CancellationToken cancellationToken)
     {
+        var startTime = DateTime.UtcNow;
+
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
+        // OPTIMIZATION: Use AsNoTracking for read-only query
         // Get all running time entries (EndTime = null)
         var runningEntries = await dbContext.TimeEntries
+            .AsNoTracking()
             .Include(e => e.Task)
             .Where(e => e.EndTime == null)
+            .Select(e => new
+            {
+                e.Id,
+                e.TaskId,
+                e.StartTime,
+                UserId = e.Task.UserId
+            })
             .ToListAsync(cancellationToken);
 
+        if (!runningEntries.Any())
+        {
+            _logger.LogDebug("No running timers to broadcast");
+            return;
+        }
+
         // Group by userId to send batch updates
-        var entriesByUser = runningEntries.GroupBy(e => e.Task.UserId);
+        var entriesByUser = runningEntries.GroupBy(e => e.UserId);
+        var broadcastCount = 0;
 
         foreach (var userGroup in entriesByUser)
         {
             var userId = userGroup.Key.ToString();
+            var now = DateTime.UtcNow;
 
-            // Send updates to all entries for this user
-            foreach (var entry in userGroup)
+            // Send batch update to user's group
+            var timerUpdates = userGroup.Select(entry => new
             {
-                var timerUpdate = new
-                {
-                    id = entry.Id,
-                    taskId = entry.TaskId,
-                    startTime = entry.StartTime,
-                    duration = entry.Duration?.TotalSeconds ?? 0,
-                    elapsedTime = DateTime.UtcNow - entry.StartTime
-                };
+                id = entry.Id,
+                taskId = entry.TaskId,
+                startTime = entry.StartTime,
+                elapsedSeconds = (now - entry.StartTime).TotalSeconds
+            }).ToList();
 
-                // Broadcast to user's group
-                await _hubContext.Clients.Group(userId)
-                    .SendAsync("OnTimerTick", timerUpdate, cancellationToken);
-            }
+            // Broadcast to user's group - renamed from OnTimerTick to OnTimerSync
+            await _hubContext.Clients.Group(userId)
+                .SendAsync("OnTimerSync", timerUpdates, cancellationToken);
+
+            broadcastCount++;
         }
+
+        var elapsed = DateTime.UtcNow - startTime;
+        _logger.LogInformation(
+            "Timer sync broadcast completed: {UserCount} users, {TimerCount} timers, {ElapsedMs}ms",
+            broadcastCount,
+            runningEntries.Count,
+            elapsed.TotalMilliseconds);
     }
 }
