@@ -75,6 +75,57 @@ export const timeEntryApi = {
   },
 };
 
+// Team API
+export const teamApi = {
+  getAll: async (userId: string): Promise<any[]> => {
+    const params = new URLSearchParams({ userId });
+    const response = await api.get(`/api/teams?${params.toString()}`);
+    return response.data;
+  },
+
+  getById: async (teamId: string, userId: string): Promise<any> => {
+    const params = new URLSearchParams({ userId });
+    const response = await api.get(`/api/teams/${teamId}?${params.toString()}`);
+    return response.data;
+  },
+
+  create: async (userId: string, name: string): Promise<any> => {
+    const response = await api.post('/api/teams', { userId, name });
+    return response.data;
+  },
+
+  update: async (teamId: string, userId: string, name: string): Promise<any> => {
+    const response = await api.put(`/api/teams/${teamId}`, { userId, name });
+    return response.data;
+  },
+
+  delete: async (teamId: string, userId: string): Promise<void> => {
+    const params = new URLSearchParams({ userId });
+    await api.delete(`/api/teams/${teamId}?${params.toString()}`);
+  },
+
+  // Team Members
+  getMembers: async (teamId: string, userId: string): Promise<any[]> => {
+    const params = new URLSearchParams({ userId });
+    const response = await api.get(`/api/teams/${teamId}/members?${params.toString()}`);
+    return response.data;
+  },
+
+  addMember: async (teamId: string, requesterId: string, userEmail: string, role: string): Promise<any> => {
+    const response = await api.post(`/api/teams/${teamId}/members`, {
+      requesterId,
+      userEmail,
+      role,
+    });
+    return response.data;
+  },
+
+  removeMember: async (teamId: string, userId: string, requesterId: string): Promise<void> => {
+    const params = new URLSearchParams({ requesterId });
+    await api.delete(`/api/teams/${teamId}/members/${userId}?${params.toString()}`);
+  },
+};
+
 // Project API
 export const projectApi = {
   getAll: async (userId: string, includeArchived = false): Promise<Project[]> => {

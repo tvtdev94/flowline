@@ -5,8 +5,11 @@ import TaskControls from '../components/Controls/TaskControls';
 import StatsPanel from '../components/StatsPanel/StatsPanel';
 import CreateTaskModal from '../components/Controls/CreateTaskModal';
 import ProjectManagementModal from '../components/Controls/ProjectManagementModal';
+import TeamManagementModal from '../components/Controls/TeamManagementModal';
+import ThemeToggle from '../components/Controls/ThemeToggle';
 import { useTaskStore } from '../store/taskStore';
 import { useTimerStore } from '../store/timerStore';
+import { useTeamStore } from '../store/teamStore';
 import { useSignalR } from '../hooks/useSignalR';
 import { useAuthStore } from '../store/authStore';
 import { TaskStatus } from '../types/task';
@@ -23,8 +26,10 @@ function DashboardPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('personal');
   const [timelineZoom, setTimelineZoom] = useState(100); // pixels per hour
+  const { teams, fetchTeams } = useTeamStore();
 
   const userId = user?.id || '';
 
@@ -45,6 +50,13 @@ function DashboardPage() {
       fetchTimeEntries(userId, currentDate);
     }
   }, [fetchTasks, fetchTimeEntries, currentDate, userId]);
+
+  // Fetch teams when switching to team mode
+  useEffect(() => {
+    if (userId && viewMode === 'team') {
+      fetchTeams(userId);
+    }
+  }, [userId, viewMode, fetchTeams]);
 
   const handleLogout = () => {
     logout();
@@ -89,27 +101,27 @@ function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+      <header className="bg-white dark:bg-gray-800 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">FLOWLINE</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">FLOWLINE</h1>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Timeline Task Tracker with Real-time Visualization
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 md:gap-4">
               {/* Personal/Team Mode Switch */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('personal')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'personal'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                 >
                   Personal
@@ -129,34 +141,38 @@ function DashboardPage() {
               {/* New Task Button */}
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
+                className="px-3 md:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm md:text-base"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                New Task
+                <span className="hidden sm:inline">New Task</span>
+                <span className="sm:hidden">New</span>
               </button>
 
               {/* Manage Projects Button */}
               <button
                 onClick={() => setIsProjectModalOpen(true)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center gap-2"
+                className="px-3 md:px-4 py-2 bg-gray-600 dark:bg-gray-600 text-white rounded-md hover:bg-gray-700 dark:hover:bg-gray-500 flex items-center gap-2 text-sm md:text-base"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                Projects
+                <span className="hidden sm:inline">Projects</span>
               </button>
 
               {/* User Menu */}
-              <div className="flex items-center gap-3 border-l pl-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="flex items-center gap-2 md:gap-3 border-l dark:border-gray-600 pl-2 md:pl-4">
+                {/* Theme Toggle */}
+                <ThemeToggle />
+
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                  className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                   title="Logout"
                 >
                   Logout
@@ -168,19 +184,34 @@ function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Team Mode Notice */}
+        {/* Team Mode Panel */}
         {viewMode === 'team' && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="text-sm font-medium text-blue-900">Team Mode</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Team collaboration features are coming soon. For now, you're viewing your personal tasks.
-                </p>
+          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Team Collaboration Mode</p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    {teams.length === 0
+                      ? "You're not part of any teams yet. Create or join a team to collaborate!"
+                      : `You're part of ${teams.length} team${teams.length > 1 ? 's' : ''}. Manage your teams to view shared tasks.`
+                    }
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => setIsTeamModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm whitespace-nowrap"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Manage Teams
+              </button>
             </div>
           </div>
         )}
@@ -375,6 +406,13 @@ function DashboardPage() {
         userId={userId}
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
+      />
+
+      {/* Team Management Modal */}
+      <TeamManagementModal
+        userId={userId}
+        isOpen={isTeamModalOpen}
+        onClose={() => setIsTeamModalOpen(false)}
       />
 
       {/* Footer */}

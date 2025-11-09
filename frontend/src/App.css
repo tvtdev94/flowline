@@ -1,8 +1,24 @@
+/* Dark Mode Global Styles */
+:root {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+}
+
+/* Dark mode body background */
+body.dark,
+html.dark body {
+  background-color: #111827;
+  color: #f3f4f6;
 }
 
 .logo {
