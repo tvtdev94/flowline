@@ -1,0 +1,265 @@
+### Flowline API Tests
+### Use with REST Client extension in VS Code or HTTP Client in JetBrains IDEs
+### Variables are automatically captured from responses
+
+@baseUrl = http://localhost:5000
+@contentType = application/json
+
+### ==================== HEALTH CHECK ====================
+
+### Health Check
+GET {{baseUrl}}/health
+Content-Type: {{contentType}}
+
+### ==================== AUTH ENDPOINTS ====================
+
+### Dev Login (Get Token)
+# @name devLogin
+POST {{baseUrl}}/api/auth/dev-login
+Content-Type: {{contentType}}
+
+###
+@token = {{devLogin.response.body.token}}
+@userId = {{devLogin.response.body.user.id}}
+
+### Google Auth (if enabled)
+POST {{baseUrl}}/api/auth/google
+Content-Type: {{contentType}}
+
+{
+  "idToken": "your-google-id-token-here"
+}
+
+### Get Current User Info
+GET {{baseUrl}}/api/auth/me
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### ==================== PROJECT ENDPOINTS ====================
+
+### Create Project
+# @name createProject
+POST {{baseUrl}}/api/projects
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "name": "Test Project",
+  "description": "Project created via HTTP test",
+  "color": "#3B82F6"
+}
+
+###
+@projectId = {{createProject.response.body.id}}
+
+### Get All Projects
+GET {{baseUrl}}/api/projects?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get All Projects (include archived)
+GET {{baseUrl}}/api/projects?userId={{userId}}&includeArchived=true
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Project
+PUT {{baseUrl}}/api/projects/{{projectId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Project Name",
+  "description": "Updated description",
+  "color": "#EF4444"
+}
+
+### Delete Project
+DELETE {{baseUrl}}/api/projects/{{projectId}}?userId={{userId}}
+Authorization: Bearer {{token}}
+
+### ==================== TASK ENDPOINTS ====================
+
+### Create Task
+# @name createTask
+POST {{baseUrl}}/api/tasks
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "projectId": "{{projectId}}",
+  "title": "Test Task",
+  "description": "Task created via HTTP test",
+  "status": 0
+}
+
+###
+@taskId = {{createTask.response.body.id}}
+
+### Get All Tasks
+GET {{baseUrl}}/api/tasks?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Tasks by Project
+GET {{baseUrl}}/api/tasks?userId={{userId}}&projectId={{projectId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Task
+PUT {{baseUrl}}/api/tasks/{{taskId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "title": "Updated Task Title",
+  "description": "Updated task description",
+  "status": 1
+}
+
+### Delete Task
+DELETE {{baseUrl}}/api/tasks/{{taskId}}
+Authorization: Bearer {{token}}
+
+### ==================== TIME ENTRY ENDPOINTS ====================
+
+### Start Timer
+# @name startTimer
+POST {{baseUrl}}/api/time-entries/start
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "projectId": "{{projectId}}",
+  "taskId": "{{taskId}}",
+  "description": "Working on test task"
+}
+
+###
+@timeEntryId = {{startTimer.response.body.id}}
+
+### Get All Time Entries
+GET {{baseUrl}}/api/time-entries?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Time Entries by Date
+GET {{baseUrl}}/api/time-entries?userId={{userId}}&date=2025-11-09
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Time Entries by Date Range
+GET {{baseUrl}}/api/time-entries?userId={{userId}}&startDate=2025-11-01&endDate=2025-11-30
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Running Timers
+GET {{baseUrl}}/api/time-entries/running?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Stop Timer
+PATCH {{baseUrl}}/api/time-entries/{{timeEntryId}}/stop
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Time Entry
+PUT {{baseUrl}}/api/time-entries/{{timeEntryId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "description": "Updated time entry description",
+  "startTime": "2025-11-09T10:00:00Z",
+  "endTime": "2025-11-09T12:00:00Z"
+}
+
+### Delete Time Entry
+DELETE {{baseUrl}}/api/time-entries/{{timeEntryId}}
+Authorization: Bearer {{token}}
+
+### ==================== STATS ENDPOINTS ====================
+
+### Get Daily Stats
+GET {{baseUrl}}/api/stats/daily?userId={{userId}}&date=2025-11-09
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Weekly Stats
+GET {{baseUrl}}/api/stats/weekly?userId={{userId}}&startDate=2025-11-04
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Monthly Stats
+GET {{baseUrl}}/api/stats/monthly?userId={{userId}}&year=2025&month=11
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### ==================== TEAM ENDPOINTS ====================
+
+### Create Team
+# @name createTeam
+POST {{baseUrl}}/api/teams
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Test Team",
+  "description": "Team created via HTTP test",
+  "ownerId": "{{userId}}"
+}
+
+###
+@teamId = {{createTeam.response.body.id}}
+
+### Get All Teams
+GET {{baseUrl}}/api/teams?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get Team By ID
+GET {{baseUrl}}/api/teams/{{teamId}}?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Team
+PUT {{baseUrl}}/api/teams/{{teamId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Team Name",
+  "description": "Updated team description"
+}
+
+### Delete Team
+DELETE {{baseUrl}}/api/teams/{{teamId}}?userId={{userId}}
+Authorization: Bearer {{token}}
+
+### ==================== TEAM MEMBER ENDPOINTS ====================
+
+### Add Team Member
+# @name addMember
+POST {{baseUrl}}/api/teams/{{teamId}}/members
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "userEmail": "member@example.com",
+  "role": 1,
+  "addedBy": "{{userId}}"
+}
+
+###
+@memberId = {{addMember.response.body.id}}
+
+### Get Team Members
+GET {{baseUrl}}/api/teams/{{teamId}}/members?userId={{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Remove Team Member
+DELETE {{baseUrl}}/api/teams/{{teamId}}/members/{{memberId}}?requesterId={{userId}}
+Authorization: Bearer {{token}}
