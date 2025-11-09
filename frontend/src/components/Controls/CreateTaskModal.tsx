@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { TaskStatus } from '../../types/task';
 import { taskApi } from '../../services/api';
 import { useTaskStore } from '../../store/taskStore';
@@ -58,9 +59,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ userId, isOpen, onClo
       setColor(TASK_COLORS[0]);
       setStatus(TaskStatus.Active);
 
+      toast.success('Task created successfully');
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      const errorMessage = (err as Error).message || 'Failed to create task';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

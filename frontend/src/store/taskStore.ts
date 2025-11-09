@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import { Task } from '../types/task';
 import { taskApi } from '../services/api';
 
@@ -25,7 +26,9 @@ export const useTaskStore = create<TaskState>((set) => ({
       const tasks = await taskApi.getAll(userId, projectId);
       set({ tasks, isLoading: false });
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const errorMessage = (error as Error).message || 'Failed to fetch tasks';
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
     }
   },
 

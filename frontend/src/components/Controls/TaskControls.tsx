@@ -103,12 +103,11 @@ const TaskControls: React.FC<TaskControlsProps> = ({ task, userId }) => {
       </div>
 
       {/* Edit Task Modal */}
-      {isEditModalOpen && (
-        <EditTaskModal
-          task={task}
-          onClose={() => setIsEditModalOpen(false)}
-        />
-      )}
+      <EditTaskModal
+        task={task}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </div>
   );
 };

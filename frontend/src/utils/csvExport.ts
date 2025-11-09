@@ -1,8 +1,9 @@
+import toast from 'react-hot-toast';
 import { TimeEntry } from '../types/timeEntry';
 
 export function exportTimeEntriesToCSV(timeEntries: TimeEntry[], date: Date): void {
   if (timeEntries.length === 0) {
-    alert('No time entries to export');
+    toast.error('No time entries to export');
     return;
   }
 
@@ -45,4 +46,6 @@ export function exportTimeEntriesToCSV(timeEntries: TimeEntry[], date: Date): vo
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  toast.success(`Exported ${timeEntries.length} time entries to CSV`);
 }

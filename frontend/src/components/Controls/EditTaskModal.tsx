@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Task, TaskStatus } from '../../types/task';
 import { taskApi } from '../../services/api';
 import { useTaskStore } from '../../store/taskStore';
@@ -50,9 +51,12 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose }) 
       });
 
       updateTask(task.id, updatedTask);
+      toast.success('Task updated successfully');
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      const errorMessage = (err as Error).message || 'Failed to update task';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -69,9 +73,12 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose }) 
     try {
       await taskApi.delete(task.id);
       removeTask(task.id);
+      toast.success('Task deleted successfully');
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      const errorMessage = (err as Error).message || 'Failed to delete task';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

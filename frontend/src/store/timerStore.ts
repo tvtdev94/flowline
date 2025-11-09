@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import toast from 'react-hot-toast';
 import { TimeEntry } from '../types/timeEntry';
 import { timeEntryApi } from '../services/api';
 
@@ -43,7 +44,9 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const errorMessage = (error as Error).message || 'Failed to fetch time entries';
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
     }
   },
 
@@ -73,9 +76,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         isLoading: false,
       }));
 
+      toast.success('Timer started');
       return timeEntry;
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const errorMessage = (error as Error).message || 'Failed to start timer';
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return null;
     }
   },
@@ -97,8 +103,12 @@ export const useTimerStore = create<TimerState>((set, get) => ({
           isLoading: false,
         };
       });
+
+      toast.success('Timer stopped');
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      const errorMessage = (error as Error).message || 'Failed to stop timer';
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
     }
   },
 
