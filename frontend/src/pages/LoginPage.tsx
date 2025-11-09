@@ -1,15 +1,18 @@
 import React from 'react';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
+import api from '../services/api';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, setAuth } = useAuthStore();
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showDevLogin, setShowDevLogin] = React.useState(false);
 
   const handleLoginSuccess = async (credentialResponse: any) => {
     if (!credentialResponse.credential) {
@@ -37,6 +40,27 @@ const LoginPage: React.FC = () => {
 
   const handleLoginError = () => {
     setError('Google login failed. Please try again.');
+    setShowDevLogin(true); // Show dev login as fallback
+  };
+
+  const handleDevLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.post('/api/auth/dev-login');
+      const { token, user } = response.data;
+
+      setAuth(token, user);
+      toast.success('Logged in as Development User');
+      navigate('/dashboard');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Development login failed';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -68,22 +92,44 @@ const LoginPage: React.FC = () => {
           )}
 
           {/* Google Login Button */}
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-3 text-gray-600">Signing in...</span>
               </div>
             ) : (
-              <GoogleLogin
-                onSuccess={handleLoginSuccess}
-                onError={handleLoginError}
-                useOneTap
-                theme="filled_blue"
-                size="large"
-                text="signin_with"
-                shape="rectangular"
-              />
+              <>
+                <GoogleLogin
+                  onSuccess={handleLoginSuccess}
+                  onError={handleLoginError}
+                  useOneTap
+                  theme="filled_blue"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                />
+
+                {/* Dev Login Button (shown as fallback or always in dev mode) */}
+                {showDevLogin && (
+                  <div className="w-full">
+                    <div className="relative my-4">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-gray-500">Or for testing</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDevLogin}
+                      className="w-full px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium"
+                    >
+                      Development Login (No Google)
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
