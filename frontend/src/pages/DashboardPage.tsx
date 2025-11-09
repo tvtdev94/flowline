@@ -7,13 +7,19 @@ import CreateTaskModal from '../components/Controls/CreateTaskModal';
 import ProjectManagementModal from '../components/Controls/ProjectManagementModal';
 import TeamManagementModal from '../components/Controls/TeamManagementModal';
 import ThemeToggle from '../components/Controls/ThemeToggle';
+import FloatingTimerButton from '../components/Controls/FloatingTimerButton';
+import KeyboardShortcutsHelp from '../components/Controls/KeyboardShortcutsHelp';
+import WelcomeOnboarding from '../components/Onboarding/WelcomeOnboarding';
 import { useTaskStore } from '../store/taskStore';
 import { useTimerStore } from '../store/timerStore';
 import { useTeamStore } from '../store/teamStore';
 import { useSignalR } from '../hooks/useSignalR';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useTimerNotifications } from '../hooks/useTimerNotifications';
 import { useAuthStore } from '../store/authStore';
 import { TaskStatus } from '../types/task';
 import { exportTimeEntriesToCSV } from '../utils/csvExport';
+import toast from 'react-hot-toast';
 import '../App.css';
 
 type ViewMode = 'personal' | 'team';
@@ -42,6 +48,53 @@ function DashboardPage() {
 
   // Connect to SignalR for real-time timer updates
   useSignalR(userId);
+
+  // Enable timer notifications and idle detection
+  useTimerNotifications({
+    enabled: true,
+    hourlyReminder: true,
+    idleDetection: true,
+    idleThreshold: 30, // 30 minutes
+  });
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewTask: () => setIsCreateModalOpen(true),
+    onQuickTimer: async () => {
+      const { runningTimers, startTimer, stopTimer } = useTimerStore.getState();
+      const firstRunningTimer = runningTimers.size > 0 ? Array.from(runningTimers.values())[0] : null;
+
+      if (firstRunningTimer) {
+        // Stop running timer
+        await stopTimer(firstRunningTimer.id);
+        toast.success('Timer stopped');
+      } else if (tasks.length > 0) {
+        // Start timer on last task
+        const lastTask = tasks[tasks.length - 1];
+        await startTimer(lastTask.id, userId);
+        toast.success(`Timer started on "${lastTask.title}"`);
+      } else {
+        toast.error('No tasks available. Create a task first.');
+      }
+    },
+    onStopTimer: async () => {
+      const { runningTimers, stopTimer } = useTimerStore.getState();
+      const firstRunningTimer = runningTimers.size > 0 ? Array.from(runningTimers.values())[0] : null;
+
+      if (firstRunningTimer) {
+        await stopTimer(firstRunningTimer.id);
+        toast.success('Timer stopped');
+      } else {
+        toast('No running timer to stop', { icon: 'ℹ️' });
+      }
+    },
+    onEscape: () => {
+      // Close all modals
+      setIsCreateModalOpen(false);
+      setIsProjectModalOpen(false);
+      setIsTeamModalOpen(false);
+    },
+  });
 
   // Fetch tasks and time entries on mount
   useEffect(() => {
@@ -416,12 +469,24 @@ function DashboardPage() {
       />
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600">
-          <p>FLOWLINE MVP - Phase 3 Implementation</p>
-          <p className="mt-1">Real-time Timeline Task Tracker with Stats & Task Management</p>
+      <footer className="bg-white dark:bg-gray-800 border-t dark:border-gray-700 mt-12">
+        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p>FLOWLINE MVP - Phase 4: Mobile & UX Polish</p>
+          <p className="mt-1">Timeline Task Tracker with Real-time Updates & Notifications</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+            Press <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-xs">?</kbd> for keyboard shortcuts
+          </p>
         </div>
       </footer>
+
+      {/* Floating Timer Button (Mobile & Desktop) */}
+      <FloatingTimerButton userId={userId} onNewTask={() => setIsCreateModalOpen(true)} />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp />
+
+      {/* Welcome Onboarding (First Time Users) */}
+      <WelcomeOnboarding />
     </div>
   );
 }

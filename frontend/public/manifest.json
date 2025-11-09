@@ -1,0 +1,46 @@
+{
+  "name": "Flowline - Timeline Task Tracker",
+  "short_name": "Flowline",
+  "description": "Visual timeline task tracker with real-time updates",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Start Timer",
+      "short_name": "Start",
+      "description": "Quick start timer on last task",
+      "url": "/?action=start-timer",
+      "icons": [
+        {
+          "src": "/vite.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "New Task",
+      "short_name": "New",
+      "description": "Create a new task",
+      "url": "/?action=new-task",
+      "icons": [
+        {
+          "src": "/vite.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
