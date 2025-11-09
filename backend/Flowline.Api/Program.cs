@@ -12,6 +12,14 @@ using Flowline.Application.TimeEntries.Update;
 using Flowline.Application.TimeEntries.Delete;
 using Flowline.Application.Stats;
 using Flowline.Application.Auth;
+using Flowline.Application.Teams.Create;
+using Flowline.Application.Teams.GetAll;
+using Flowline.Application.Teams.GetById;
+using Flowline.Application.Teams.Update;
+using Flowline.Application.Teams.Delete;
+using Flowline.Application.TeamMembers.Add;
+using Flowline.Application.TeamMembers.Remove;
+using Flowline.Application.TeamMembers.GetAll;
 using Flowline.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -227,12 +235,14 @@ app.MapPost("/api/tasks", async (CreateTaskCommand command, ISender sender) =>
 .WithOpenApi();
 
 // Get Tasks
-app.MapGet("/api/tasks", async (Guid userId, Guid? projectId, ISender sender) =>
+app.MapGet("/api/tasks", async (Guid userId, Guid? projectId, Guid? teamId, bool includeTeamTasks, ISender sender) =>
 {
     var query = new GetTasksQuery
     {
         UserId = userId,
-        ProjectId = projectId
+        ProjectId = projectId,
+        TeamId = teamId,
+        IncludeTeamTasks = includeTeamTasks
     };
 
     var result = await sender.Send(query);
@@ -351,6 +361,94 @@ app.MapGet("/api/stats/daily", async (Guid userId, DateTime date, ISender sender
     return Results.Ok(result);
 })
 .WithName("GetDailyStats")
+.WithOpenApi();
+
+// ==================== TEAM ENDPOINTS ====================
+
+// Create Team
+app.MapPost("/api/teams", async (CreateTeamCommand command, ISender sender) =>
+{
+    var result = await sender.Send(command);
+    return Results.Created($"/api/teams/{result.Id}", result);
+})
+.WithName("CreateTeam")
+.WithOpenApi();
+
+// Get User's Teams
+app.MapGet("/api/teams", async (Guid userId, ISender sender) =>
+{
+    var query = new GetTeamsQuery { UserId = userId };
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetTeams")
+.WithOpenApi();
+
+// Get Team By Id
+app.MapGet("/api/teams/{id}", async (Guid id, Guid userId, ISender sender) =>
+{
+    var query = new GetTeamByIdQuery { TeamId = id, UserId = userId };
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetTeamById")
+.WithOpenApi();
+
+// Update Team
+app.MapPut("/api/teams/{id}", async (Guid id, UpdateTeamCommand command, ISender sender) =>
+{
+    var updatedCommand = command with { TeamId = id };
+    var result = await sender.Send(updatedCommand);
+    return Results.Ok(result);
+})
+.WithName("UpdateTeam")
+.WithOpenApi();
+
+// Delete Team
+app.MapDelete("/api/teams/{id}", async (Guid id, Guid userId, ISender sender) =>
+{
+    var command = new DeleteTeamCommand { TeamId = id, UserId = userId };
+    await sender.Send(command);
+    return Results.NoContent();
+})
+.WithName("DeleteTeam")
+.WithOpenApi();
+
+// ==================== TEAM MEMBER ENDPOINTS ====================
+
+// Add Team Member
+app.MapPost("/api/teams/{teamId}/members", async (Guid teamId, AddTeamMemberCommand command, ISender sender) =>
+{
+    var updatedCommand = command with { TeamId = teamId };
+    var result = await sender.Send(updatedCommand);
+    return Results.Created($"/api/teams/{teamId}/members/{result.Id}", result);
+})
+.WithName("AddTeamMember")
+.WithOpenApi();
+
+// Get Team Members
+app.MapGet("/api/teams/{teamId}/members", async (Guid teamId, Guid userId, ISender sender) =>
+{
+    var query = new GetTeamMembersQuery { TeamId = teamId, RequesterId = userId };
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetTeamMembers")
+.WithOpenApi();
+
+// Remove Team Member
+app.MapDelete("/api/teams/{teamId}/members/{userId}", async (Guid teamId, Guid userId, Guid requesterId, ISender sender) =>
+{
+    var command = new RemoveTeamMemberCommand
+    {
+        TeamId = teamId,
+        UserIdToRemove = userId,
+        RequesterId = requesterId
+    };
+    await sender.Send(command);
+    return Results.NoContent();
+})
+.WithName("RemoveTeamMember")
 .WithOpenApi();
 
 // ==================== SIGNALR HUB ====================

@@ -1,9 +1,9 @@
-namespace Flowline.Domain.Entities;
+namespace Flowline.Application.Teams.Create;
 
-public sealed class Team
+public sealed record CreateTeamResponse
 {
     public required Guid Id { get; init; }
-    public required string Name { get; set; } // MUTABLE for updates
+    public required string Name { get; init; }
     public required Guid OwnerId { get; init; }
     public required DateTime CreatedAt { get; init; }
 }
