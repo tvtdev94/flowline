@@ -8,6 +8,8 @@ using Flowline.Application.Tasks.Delete;
 using Flowline.Application.TimeEntries.Start;
 using Flowline.Application.TimeEntries.Stop;
 using Flowline.Application.TimeEntries.GetAll;
+using Flowline.Application.TimeEntries.Update;
+using Flowline.Application.TimeEntries.Delete;
 using Flowline.Application.Stats;
 using Flowline.Application.Auth;
 using Flowline.Infrastructure;
@@ -312,6 +314,26 @@ app.MapGet("/api/time-entries/running", async (Guid userId, ISender sender) =>
     return Results.Ok(runningTimers);
 })
 .WithName("GetRunningTimers")
+.WithOpenApi();
+
+// Update Time Entry
+app.MapPut("/api/time-entries/{id}", async (Guid id, UpdateTimeEntryCommand command, ISender sender) =>
+{
+    var updatedCommand = command with { TimeEntryId = id };
+    var result = await sender.Send(updatedCommand);
+    return Results.Ok(result);
+})
+.WithName("UpdateTimeEntry")
+.WithOpenApi();
+
+// Delete Time Entry
+app.MapDelete("/api/time-entries/{id}", async (Guid id, ISender sender) =>
+{
+    var command = new DeleteTimeEntryCommand { TimeEntryId = id };
+    await sender.Send(command);
+    return Results.NoContent();
+})
+.WithName("DeleteTimeEntry")
 .WithOpenApi();
 
 // ==================== STATS ENDPOINTS ====================
