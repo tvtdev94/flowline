@@ -1,0 +1,72 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway deployment
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker (Railway builds from Dockerfile)
+docker-compose.yml
+docker-compose.*.yml
+
+# Documentation (optional - remove if you want to include)
+*.md
+!README.md
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__/
+coverage/
+
+# Build artifacts (will be rebuilt)
+node_modules/
+dist/
+build/
+bin/
+obj/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+
+# Caddy (not needed on Railway)
+Caddyfile
+caddy_data/
+caddy_config/
+
+# Scripts
+start-dev.sh
+test-endpoints.sh
+deploy-railway.sh
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
