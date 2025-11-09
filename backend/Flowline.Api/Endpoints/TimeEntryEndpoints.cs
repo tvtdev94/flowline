@@ -12,8 +12,12 @@ public static class TimeEntryEndpoints
 {
     public static void MapTimeEntryEndpoints(this IEndpointRouteBuilder app)
     {
+        var timeEntries = app.MapGroup("/api/time-entries")
+            .WithTags("Time Entries")
+            .RequireAuthorization();
+
         // Start Timer
-        app.MapPost("/api/time-entries/start", async (
+        timeEntries.MapPost("/start", async (
             [FromBody] StartTimerCommand command,
             [FromServices] ISender sender) =>
         {
@@ -24,7 +28,7 @@ public static class TimeEntryEndpoints
         .WithOpenApi();
 
         // Stop Timer
-        app.MapPatch("/api/time-entries/{id}/stop", async (
+        timeEntries.MapPatch("/{id}/stop", async (
             [FromRoute] Guid id,
             [FromServices] ISender sender) =>
         {
@@ -36,7 +40,7 @@ public static class TimeEntryEndpoints
         .WithOpenApi();
 
         // Get Time Entries
-        app.MapGet("/api/time-entries", async (
+        timeEntries.MapGet("", async (
             [AsParameters] GetTimeEntriesQuery query,
             [FromServices] ISender sender) =>
         {
@@ -47,7 +51,7 @@ public static class TimeEntryEndpoints
         .WithOpenApi();
 
         // Get Running Timers
-        app.MapGet("/api/time-entries/running", async (
+        timeEntries.MapGet("/running", async (
             [FromQuery] Guid userId,
             [FromServices] ISender sender) =>
         {
@@ -66,7 +70,7 @@ public static class TimeEntryEndpoints
         .WithOpenApi();
 
         // Update Time Entry
-        app.MapPut("/api/time-entries/{id}", async (
+        timeEntries.MapPut("/{id}", async (
             [FromRoute] Guid id,
             [FromBody] UpdateTimeEntryCommand command,
             [FromServices] ISender sender) =>
@@ -79,7 +83,7 @@ public static class TimeEntryEndpoints
         .WithOpenApi();
 
         // Delete Time Entry
-        app.MapDelete("/api/time-entries/{id}", async (
+        timeEntries.MapDelete("/{id}", async (
             [FromRoute] Guid id,
             [FromServices] ISender sender) =>
         {

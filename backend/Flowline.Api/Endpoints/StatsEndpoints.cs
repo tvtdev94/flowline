@@ -8,8 +8,12 @@ public static class StatsEndpoints
 {
     public static void MapStatsEndpoints(this IEndpointRouteBuilder app)
     {
+        var stats = app.MapGroup("/api/stats")
+            .WithTags("Statistics")
+            .RequireAuthorization();
+
         // Get Daily Stats
-        app.MapGet("/api/stats/daily", async (
+        stats.MapGet("/daily", async (
             [AsParameters] GetDailyStatsQuery query,
             [FromServices] ISender sender) =>
         {
@@ -20,7 +24,7 @@ public static class StatsEndpoints
         .WithOpenApi();
 
         // Get Weekly Stats
-        app.MapGet("/api/stats/weekly", async (
+        stats.MapGet("/weekly", async (
             [AsParameters] GetWeeklyStatsQuery query,
             [FromServices] ISender sender) =>
         {
@@ -31,7 +35,7 @@ public static class StatsEndpoints
         .WithOpenApi();
 
         // Get Monthly Stats
-        app.MapGet("/api/stats/monthly", async (
+        stats.MapGet("/monthly", async (
             [AsParameters] GetMonthlyStatsQuery query,
             [FromServices] ISender sender) =>
         {

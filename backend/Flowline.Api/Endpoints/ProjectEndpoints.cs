@@ -11,8 +11,12 @@ public static class ProjectEndpoints
 {
     public static void MapProjectEndpoints(this IEndpointRouteBuilder app)
     {
+        var projects = app.MapGroup("/api/projects")
+            .WithTags("Projects")
+            .RequireAuthorization();
+
         // Create Project
-        app.MapPost("/api/projects", async (
+        projects.MapPost("", async (
             [FromBody] CreateProjectCommand command,
             [FromServices] ISender sender) =>
         {
@@ -23,7 +27,7 @@ public static class ProjectEndpoints
         .WithOpenApi();
 
         // Get User's Projects
-        app.MapGet("/api/projects", async (
+        projects.MapGet("", async (
             [AsParameters] GetProjectsQuery query,
             [FromServices] ISender sender) =>
         {
@@ -34,7 +38,7 @@ public static class ProjectEndpoints
         .WithOpenApi();
 
         // Update Project
-        app.MapPut("/api/projects/{id}", async (
+        projects.MapPut("/{id}", async (
             [FromRoute] Guid id,
             [FromBody] UpdateProjectCommand command,
             [FromServices] ISender sender) =>
@@ -47,7 +51,7 @@ public static class ProjectEndpoints
         .WithOpenApi();
 
         // Delete Project
-        app.MapDelete("/api/projects/{id}", async (
+        projects.MapDelete("/{id}", async (
             [FromRoute] Guid id,
             [FromQuery] Guid userId,
             [FromServices] ISender sender) =>

@@ -11,8 +11,11 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
+        var auth = app.MapGroup("/api/auth")
+            .WithTags("Authentication");
+
         // Google OAuth Login
-        app.MapPost("/api/auth/google", async (
+        auth.MapPost("/google", async (
             [FromBody] GoogleAuthRequest request,
             [FromServices] ISender sender,
             [FromServices] IConfiguration config) =>
@@ -34,7 +37,7 @@ public static class AuthEndpoints
         .AllowAnonymous();
 
         // Development Login (Only when Google Auth is disabled)
-        app.MapPost("/api/auth/dev-login", async (
+        auth.MapPost("/dev-login", async (
             [FromServices] IConfiguration config,
             [FromServices] IApplicationDbContext context,
             [FromServices] IJwtService jwtService,
@@ -96,7 +99,7 @@ public static class AuthEndpoints
         .AllowAnonymous();
 
         // Get Current User
-        app.MapGet("/api/auth/me", (HttpContext httpContext) =>
+        auth.MapGet("/me", (HttpContext httpContext) =>
         {
             var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var email = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
@@ -118,9 +121,10 @@ public static class AuthEndpoints
         .WithOpenApi()
         .RequireAuthorization();
 
-        // Health check
+        // Health check (not in auth group)
         app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
            .WithName("HealthCheck")
+           .WithTags("Health")
            .WithOpenApi()
            .AllowAnonymous();
     }

@@ -10,8 +10,12 @@ public static class TeamMemberEndpoints
 {
     public static void MapTeamMemberEndpoints(this IEndpointRouteBuilder app)
     {
+        var teamMembers = app.MapGroup("/api/teams/{teamId}/members")
+            .WithTags("Team Members")
+            .RequireAuthorization();
+
         // Add Team Member
-        app.MapPost("/api/teams/{teamId}/members", async (
+        teamMembers.MapPost("", async (
             [FromRoute] Guid teamId,
             [FromBody] AddTeamMemberCommand command,
             [FromServices] ISender sender) =>
@@ -24,7 +28,7 @@ public static class TeamMemberEndpoints
         .WithOpenApi();
 
         // Get Team Members
-        app.MapGet("/api/teams/{teamId}/members", async (
+        teamMembers.MapGet("", async (
             [FromRoute] Guid teamId,
             [FromQuery] Guid userId,
             [FromServices] ISender sender) =>
@@ -37,7 +41,7 @@ public static class TeamMemberEndpoints
         .WithOpenApi();
 
         // Remove Team Member
-        app.MapDelete("/api/teams/{teamId}/members/{userId}", async (
+        teamMembers.MapDelete("/{userId}", async (
             [FromRoute] Guid teamId,
             [FromRoute] Guid userId,
             [FromQuery] Guid requesterId,

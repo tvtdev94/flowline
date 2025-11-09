@@ -11,8 +11,12 @@ public static class TaskEndpoints
 {
     public static void MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
+        var tasks = app.MapGroup("/api/tasks")
+            .WithTags("Tasks")
+            .RequireAuthorization();
+
         // Create Task
-        app.MapPost("/api/tasks", async (
+        tasks.MapPost("", async (
             [FromBody] CreateTaskCommand command,
             [FromServices] ISender sender) =>
         {
@@ -23,7 +27,7 @@ public static class TaskEndpoints
         .WithOpenApi();
 
         // Get Tasks
-        app.MapGet("/api/tasks", async (
+        tasks.MapGet("", async (
             [AsParameters] GetTasksQuery query,
             [FromServices] ISender sender) =>
         {
@@ -34,7 +38,7 @@ public static class TaskEndpoints
         .WithOpenApi();
 
         // Update Task
-        app.MapPut("/api/tasks/{id}", async (
+        tasks.MapPut("/{id}", async (
             [FromRoute] Guid id,
             [FromBody] UpdateTaskCommand command,
             [FromServices] ISender sender) =>
@@ -47,7 +51,7 @@ public static class TaskEndpoints
         .WithOpenApi();
 
         // Delete Task
-        app.MapDelete("/api/tasks/{id}", async (
+        tasks.MapDelete("/{id}", async (
             [FromRoute] Guid id,
             [FromServices] ISender sender) =>
         {
