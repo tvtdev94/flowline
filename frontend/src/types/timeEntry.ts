@@ -13,6 +13,7 @@ export interface TimeEntry {
 
 export interface StartTimerRequest {
   taskId: string;
+  userId: string;
 }
 
 export interface TimerTickEvent {

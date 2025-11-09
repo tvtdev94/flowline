@@ -12,16 +12,17 @@ const DEMO_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 function App() {
   const { tasks, fetchTasks } = useTaskStore();
-  const { timeEntries } = useTimerStore();
+  const { timeEntries, fetchTimeEntries } = useTimerStore();
   const [currentDate] = useState(new Date());
 
   // Connect to SignalR for real-time timer updates
   useSignalR(DEMO_USER_ID);
 
-  // Fetch tasks on mount
+  // Fetch tasks and time entries on mount
   useEffect(() => {
     fetchTasks(DEMO_USER_ID);
-  }, [fetchTasks]);
+    fetchTimeEntries(DEMO_USER_ID, currentDate);
+  }, [fetchTasks, fetchTimeEntries, currentDate]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -53,7 +54,7 @@ function App() {
           <h3 className="text-lg font-semibold mb-4">Tasks</h3>
           <div className="space-y-4">
             {tasks.length > 0 ? (
-              tasks.map((task) => <TaskControls key={task.id} task={task} />)
+              tasks.map((task) => <TaskControls key={task.id} task={task} userId={DEMO_USER_ID} />)
             ) : (
               <div className="bg-white rounded-lg shadow-md p-8 text-center">
                 <p className="text-gray-600">

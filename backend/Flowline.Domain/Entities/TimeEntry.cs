@@ -5,8 +5,8 @@ public sealed class TimeEntry
     public required Guid Id { get; init; }
     public required Guid TaskId { get; init; }
     public required DateTime StartTime { get; init; }
-    public DateTime? EndTime { get; init; } // null = still running
-    public string? Notes { get; init; }
+    public DateTime? EndTime { get; set; } // null = still running - MUTABLE for EF Core updates
+    public string? Notes { get; set; } // MUTABLE
     public required DateTime CreatedAt { get; init; }
 
     // Navigation property

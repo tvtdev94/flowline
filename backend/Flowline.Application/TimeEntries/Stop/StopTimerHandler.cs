@@ -31,16 +31,17 @@ public sealed class StopTimerHandler : IRequestHandler<StopTimerCommand, StopTim
         }
 
         var endTime = DateTime.UtcNow;
-        var updatedEntry = timeEntry with { EndTime = endTime };
 
-        _context.TimeEntries.Update(updatedEntry);
+        // Update mutable property (EF Core will track changes)
+        timeEntry.EndTime = endTime;
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new StopTimerResponse
         {
-            Id = updatedEntry.Id,
+            Id = timeEntry.Id,
             EndTime = endTime,
-            Duration = endTime - updatedEntry.StartTime
+            Duration = endTime - timeEntry.StartTime
         };
     }
 }

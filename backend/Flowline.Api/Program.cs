@@ -5,6 +5,7 @@ using Flowline.Application.Tasks.Create;
 using Flowline.Application.Tasks.GetAll;
 using Flowline.Application.TimeEntries.Start;
 using Flowline.Application.TimeEntries.Stop;
+using Flowline.Application.TimeEntries.GetAll;
 using Flowline.Infrastructure;
 using MediatR;
 
@@ -100,6 +101,40 @@ app.MapPatch("/api/time-entries/{id}/stop", async (Guid id, ISender sender) =>
     return Results.Ok(result);
 })
 .WithName("StopTimer")
+.WithOpenApi();
+
+// Get Time Entries
+app.MapGet("/api/time-entries", async (Guid userId, DateTime? date, DateTime? startDate, DateTime? endDate, ISender sender) =>
+{
+    var query = new GetTimeEntriesQuery
+    {
+        UserId = userId,
+        Date = date,
+        StartDate = startDate,
+        EndDate = endDate
+    };
+
+    var result = await sender.Send(query);
+    return Results.Ok(result);
+})
+.WithName("GetTimeEntries")
+.WithOpenApi();
+
+// Get Running Timers
+app.MapGet("/api/time-entries/running", async (Guid userId, ISender sender) =>
+{
+    var query = new GetTimeEntriesQuery
+    {
+        UserId = userId,
+        Date = DateTime.UtcNow.Date // Today only
+    };
+
+    var result = await sender.Send(query);
+    // Filter only running timers (EndTime == null)
+    var runningTimers = result.Where(te => te.EndTime == null).ToList();
+    return Results.Ok(runningTimers);
+})
+.WithName("GetRunningTimers")
 .WithOpenApi();
 
 // ==================== SIGNALR HUB ====================

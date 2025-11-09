@@ -5,9 +5,10 @@ import { formatDuration } from '../../utils/autoLayout';
 
 interface TaskControlsProps {
   task: Task;
+  userId: string;
 }
 
-const TaskControls: React.FC<TaskControlsProps> = ({ task }) => {
+const TaskControls: React.FC<TaskControlsProps> = ({ task, userId }) => {
   const { startTimer, stopTimer, getRunningTimer } = useTimerStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,7 +17,7 @@ const TaskControls: React.FC<TaskControlsProps> = ({ task }) => {
 
   const handleStart = async () => {
     setIsLoading(true);
-    await startTimer(task.id);
+    await startTimer(task.id, userId);
     setIsLoading(false);
   };
 

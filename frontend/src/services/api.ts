@@ -29,6 +29,22 @@ export const taskApi = {
 
 // Time Entry API
 export const timeEntryApi = {
+  getAll: async (userId: string, date?: Date): Promise<TimeEntry[]> => {
+    const params = new URLSearchParams({ userId });
+    if (date) {
+      params.append('date', date.toISOString());
+    }
+
+    const response = await api.get(`/api/time-entries?${params.toString()}`);
+    return response.data;
+  },
+
+  getRunning: async (userId: string): Promise<TimeEntry[]> => {
+    const params = new URLSearchParams({ userId });
+    const response = await api.get(`/api/time-entries/running?${params.toString()}`);
+    return response.data;
+  },
+
   start: async (request: StartTimerRequest): Promise<TimeEntry> => {
     const response = await api.post('/api/time-entries/start', request);
     return response.data;
