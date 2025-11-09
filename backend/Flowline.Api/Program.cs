@@ -1,3 +1,5 @@
+using Flowline.Api.Hubs;
+using Flowline.Api.Services;
 using Flowline.Application;
 using Flowline.Application.Tasks.Create;
 using Flowline.Application.Tasks.GetAll;
@@ -15,6 +17,12 @@ builder.Services.AddSwaggerGen();
 // Add Application & Infrastructure layers
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Add Timer Background Service
+builder.Services.AddHostedService<TimerBackgroundService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -93,5 +101,9 @@ app.MapPatch("/api/time-entries/{id}/stop", async (Guid id, ISender sender) =>
 })
 .WithName("StopTimer")
 .WithOpenApi();
+
+// ==================== SIGNALR HUB ====================
+
+app.MapHub<TimerHub>("/hubs/timer");
 
 app.Run();

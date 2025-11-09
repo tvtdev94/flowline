@@ -101,6 +101,12 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Notes).HasMaxLength(1000);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Ignore(e => e.Duration); // Computed property
+
+            // Relationship: TimeEntry -> Task
+            entity.HasOne(e => e.Task)
+                .WithMany()
+                .HasForeignKey(e => e.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
